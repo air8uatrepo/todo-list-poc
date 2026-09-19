@@ -14,8 +14,8 @@ thread_id: local-codex-session-20260919
 state_revision: 5
 repair_count: 0
 clarification_round: 0
-linear_issue_id: null
-linear_sync_revision: 0
+linear_issue_id: 94273eee-4ded-48c0-8f3e-f080b8ac0713
+linear_sync_revision: 1
 application_lock: todo-list-poc/REQ-001
 ---
 
