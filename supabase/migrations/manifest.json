@@ -1,0 +1,9 @@
+{
+  "migrations": [
+    {
+      "id": "REQ-001/001",
+      "template": "supabase/migrations/templates/001_create_todos.sql.tmpl",
+      "sha256": "bde4ca87e37e79794f718579d9d2e9b286d73fd6a01db493abc21739143fe401"
+    }
+  ]
+}

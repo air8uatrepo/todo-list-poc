@@ -1,0 +1,39 @@
+-- Business Direct migration for {{TARGET_SCHEMA}}.
+--
+-- This template must rebuild the WHOLE working target on its own: the schema,
+-- the table, RLS enabled, the grants, and the RLS policy the application role
+-- needs. A template that enables RLS without granting the application role a
+-- policy yields a schema the application cannot read or write, and the failure
+-- appears at runtime (42501) rather than at migration time.
+--
+-- The application role itself is created by the privileged bootstrap asset,
+-- because creating a login role needs privileges the application must not have.
+
+create schema if not exists {{TARGET_SCHEMA}};
+revoke all on schema {{TARGET_SCHEMA}} from public, anon, authenticated;
+grant usage on schema {{TARGET_SCHEMA}} to {{APP_ROLE}};
+
+create table if not exists {{TARGET_SCHEMA}}.todos (
+  id uuid primary key default gen_random_uuid(),
+  owner_token text not null,
+  title text not null,
+  is_done boolean not null default false,
+  created_at timestamptz not null default now(),
+  constraint todos_title_not_blank check (length(btrim(title)) > 0),
+  constraint todos_owner_token_not_blank check (length(btrim(owner_token)) > 0)
+);
+
+create index if not exists todos_owner_token_created_at_idx
+  on {{TARGET_SCHEMA}}.todos (owner_token, created_at desc);
+
+alter table {{TARGET_SCHEMA}}.todos enable row level security;
+revoke all on table {{TARGET_SCHEMA}}.todos from public, anon, authenticated;
+
+-- The application reaches this schema only through a server-only connection as
+-- its own least-privilege role, so that role is the policy's subject. RLS
+-- enabled with no policy denies every row.
+drop policy if exists todos_app_role on {{TARGET_SCHEMA}}.todos;
+create policy todos_app_role on {{TARGET_SCHEMA}}.todos
+  for all to {{APP_ROLE}} using (true) with check (true);
+
+grant select, insert, update, delete on {{TARGET_SCHEMA}}.todos to {{APP_ROLE}};
