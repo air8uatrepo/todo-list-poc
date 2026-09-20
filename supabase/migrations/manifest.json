@@ -4,6 +4,11 @@
       "id": "REQ-001/001",
       "template": "supabase/migrations/templates/001_create_todos.sql.tmpl",
       "sha256": "bde4ca87e37e79794f718579d9d2e9b286d73fd6a01db493abc21739143fe401"
+    },
+    {
+      "id": "REQ-002/002",
+      "template": "supabase/migrations/templates/002_add_todo_due_date.sql.tmpl",
+      "sha256": "b12dc21629cedb49e53c3abfa38a3be7df706af0cf0d41380f1f823b8d8df8dd"
     }
   ]
 }

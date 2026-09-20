@@ -1,19 +1,23 @@
 import { expect, test, type Page } from '@playwright/test';
+import { syntheticPrefix, uniqueRunToken } from './synthetic-prefix';
 
 /**
- * Key-path E2E for REQ-001.
+ * Key-path E2E for REQ-001, retained as cumulative regression coverage.
  *
  * Assertions are anchored on `data-testid` elements and exact text rather than
  * on a broad role locator: a locator that can match zero elements makes every
  * assertion vacuously true, which is how a broken page passes a green run.
  * Every count assertion below therefore also proves the element is present.
+ *
+ * The fixture prefix comes from the shared per-requirement table, so this spec
+ * asserts on REQ-001's own approved prefix. A per-run suffix keeps each row
+ * unambiguous once a shared POC database accumulates rows across runs.
  */
 
-const RUN_ID = process.env.BUSINESS_DIRECT_E2E_RUN_ID ?? '20260919-01';
-const PREFIX = `DEMO-REQ-001-${RUN_ID}`;
+const RUN_TOKEN = uniqueRunToken();
 
 function taskName(label: string): string {
-  return `${PREFIX} ${label}`;
+  return `${syntheticPrefix('REQ-001')} ${label} ${RUN_TOKEN}`;
 }
 
 async function addTask(page: Page, title: string): Promise<void> {

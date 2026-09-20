@@ -1,6 +1,6 @@
 import { readOwnerToken } from '@/src/lib/identity';
 import { createTodo, listTodos } from '@/src/lib/todos-repository';
-import { parseCreateTodoBody } from '@/src/lib/todos';
+import { parseCreateTodoInput } from '@/src/lib/todos';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +25,7 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ ok: false, error: 'Invalid request.' }, { status: 400 });
   }
 
-  const parsed = parseCreateTodoBody(body);
+  const parsed = parseCreateTodoInput(body);
   if (!parsed.ok) {
     return Response.json({ ok: false, fieldErrors: parsed.fieldErrors }, { status: 400 });
   }
@@ -39,7 +39,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    const todo = await createTodo(ownerToken, parsed.value.title);
+    const todo = await createTodo(ownerToken, parsed.value.title, parsed.value.dueDate);
     return Response.json({ ok: true, todo }, { status: 201 });
   } catch {
     return Response.json({ ok: false, error: 'Unable to save this task.' }, { status: 500 });

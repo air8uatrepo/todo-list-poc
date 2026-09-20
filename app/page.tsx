@@ -1,7 +1,9 @@
 import { AddTodoForm } from './add-todo-form';
-import { removeTodoAction, toggleTodoAction } from './actions';
+import { DueDate } from './due-date';
+import { removeTodoAction, setDueDateAction, toggleTodoAction } from './actions';
 import { readOwnerToken } from '@/src/lib/identity';
 import { listTodos } from '@/src/lib/todos-repository';
+import { buildOverdueScript } from '@/src/lib/overdue-mark';
 import type { Todo } from '@/src/lib/todos';
 
 export const dynamic = 'force-dynamic';
@@ -23,6 +25,23 @@ function TodoRow({ todo }: { todo: Todo }) {
         </button>
       </form>
       <span className="title" data-testid="todo-title">{todo.title}</span>
+      <DueDate dueDate={todo.dueDate} isDone={todo.isDone} />
+      <form action={setDueDateAction} className="due-form">
+        <input type="hidden" name="id" value={todo.id} />
+        <label htmlFor={`due-${todo.id}`} className="sr-only">
+          Due date for {todo.title}
+        </label>
+        <input
+          id={`due-${todo.id}`}
+          name="dueDate"
+          type="date"
+          className="due-input"
+          defaultValue={todo.dueDate ?? ''}
+        />
+        <button type="submit" className="save-due" aria-label={`Save due date for ${todo.title}`}>
+          Save
+        </button>
+      </form>
       <form action={removeTodoAction}>
         <input type="hidden" name="id" value={todo.id} />
         <button type="submit" className="remove" aria-label={`Delete ${todo.title}`}>
@@ -60,6 +79,14 @@ export default async function HomePage() {
           <TodoRow key={todo.id} todo={todo} />
         ))}
       </ul>
+
+      {/*
+        The overdue mark depends on the visitor's own calendar day, which the
+        server cannot know. This runs synchronously while the HTML is parsed, so
+        the mark is revealed before the first paint: no flash and no hydration
+        mismatch.
+      */}
+      <script dangerouslySetInnerHTML={{ __html: buildOverdueScript() }} />
     </main>
   );
 }

@@ -1,0 +1,50 @@
+-- Business Direct migration for {{TARGET_SCHEMA}}: add an optional due date.
+--
+-- Additive only. The table already exists in a populated database, so this
+-- template must not drop or rename anything and must not require a value from
+-- a row that already exists: `due_date` is nullable with no default, so every
+-- existing row keeps working with NULL.
+--
+-- Like the first template, this one re-asserts the WHOLE working target so it
+-- can rebuild it on its own: the schema, the table (including `due_date` for a
+-- fresh target), RLS enabled, the grants, and the RLS policy the application
+-- role needs. Every statement is idempotent, so running it against a database
+-- that already has the first template applied is a no-op plus the new column.
+--
+-- The application role itself is created by the privileged bootstrap asset,
+-- because creating a login role needs privileges the application must not have.
+
+create schema if not exists {{TARGET_SCHEMA}};
+revoke all on schema {{TARGET_SCHEMA}} from public, anon, authenticated;
+grant usage on schema {{TARGET_SCHEMA}} to {{APP_ROLE}};
+
+create table if not exists {{TARGET_SCHEMA}}.todos (
+  id uuid primary key default gen_random_uuid(),
+  owner_token text not null,
+  title text not null,
+  is_done boolean not null default false,
+  created_at timestamptz not null default now(),
+  due_date date,
+  constraint todos_title_not_blank check (length(btrim(title)) > 0),
+  constraint todos_owner_token_not_blank check (length(btrim(owner_token)) > 0)
+);
+
+-- Upgrade a table created by the first template. `if not exists` keeps this
+-- safe to re-run, and a nullable column leaves populated rows valid.
+alter table {{TARGET_SCHEMA}}.todos
+  add column if not exists due_date date;
+
+create index if not exists todos_owner_token_created_at_idx
+  on {{TARGET_SCHEMA}}.todos (owner_token, created_at desc);
+
+alter table {{TARGET_SCHEMA}}.todos enable row level security;
+revoke all on table {{TARGET_SCHEMA}}.todos from public, anon, authenticated;
+
+-- The application reaches this schema only through a server-only connection as
+-- its own least-privilege role, so that role is the policy's subject. RLS
+-- enabled with no policy denies every row.
+drop policy if exists todos_app_role on {{TARGET_SCHEMA}}.todos;
+create policy todos_app_role on {{TARGET_SCHEMA}}.todos
+  for all to {{APP_ROLE}} using (true) with check (true);
+
+grant select, insert, update, delete on {{TARGET_SCHEMA}}.todos to {{APP_ROLE}};
