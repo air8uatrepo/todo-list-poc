@@ -16,7 +16,7 @@ repair_count: 0
 clarification_round: 0
 linear_issue_id: 166d073a-4a67-4168-a759-78f4b593d156
 linear_sync_revision: 1
-linear_timeline_comment_id: null
+linear_timeline_comment_id: f7f5d834-1269-4741-86e9-5cfc9122bd13
 linear_spec_issue_id: 7de74b3b-53cc-4d3e-82c0-39ecb54d4e9a
 linear_spec_synced_revision: 1
 linear_spec_synced_at: 2026-09-20
