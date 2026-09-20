@@ -29,6 +29,26 @@ import { syntheticPrefix, uniqueRunToken } from './synthetic-prefix';
 
 const RUN_TOKEN = uniqueRunToken();
 
+/**
+ * Per-file key-path timeout.
+ *
+ * This case walks the whole due-date journey in one pass (~10 server-action
+ * round trips), and the deployed preview answers each one in ~2.9s: every step
+ * is a server action against a serverless function over a pooled database
+ * connection, so the round trip is dominated by cold serverless latency rather
+ * than by the work. The 30s project default is sized for a single interaction,
+ * not a full journey, and it expired in the cleanup loop of a run whose every
+ * acceptance assertion had already passed (proved by the failure snapshot).
+ *
+ * The budget is raised here, not in `playwright.config.ts`, so the fast REQ-001
+ * cases keep the tighter default and only this journey gets the larger one.
+ * Nothing is deleted or relaxed to fit the clock: no step, wait, or assertion
+ * is removed, so the case still fails if AC-003 regresses.
+ */
+const KEY_PATH_TIMEOUT_MS = 120_000;
+
+test.describe.configure({ timeout: KEY_PATH_TIMEOUT_MS });
+
 function taskName(label: string): string {
   return `${syntheticPrefix('REQ-002')} ${label} ${RUN_TOKEN}`;
 }
