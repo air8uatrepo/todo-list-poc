@@ -22,6 +22,16 @@ export function AddTodoForm() {
         maxLength={200}
         required
       />
+      <label htmlFor="dueDate" className="sr-only">
+        Due date (optional)
+      </label>
+      <input
+        id="dueDate"
+        name="dueDate"
+        type="date"
+        className="due-input"
+        aria-label="Due date (optional)"
+      />
       <button type="submit" disabled={pending}>
         {pending ? 'Adding...' : 'Add task'}
       </button>

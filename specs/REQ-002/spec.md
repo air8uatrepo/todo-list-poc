@@ -1,6 +1,6 @@
 # REQ-002 - Optional due date on a task
 
-**Status:** Draft for business review
+**Status:** Confirmed by the Business App Owner on 2026-09-20
 **Application:** todo-list-poc
 **Project mode:** EXISTING
 **Run ID:** `DEMO-REQ-002-20260920-01`

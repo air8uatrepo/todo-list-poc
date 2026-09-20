@@ -3,8 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { resolveOwnerToken } from '@/src/lib/identity';
-import { createTodo, removeTodo, setTodoDone } from '@/src/lib/todos-repository';
-import { parseCreateTodoBody } from '@/src/lib/todos';
+import { createTodo, removeTodo, setTodoDone, setTodoDueDate } from '@/src/lib/todos-repository';
+import { parseCreateTodoInput, validateDueDate } from '@/src/lib/todos';
 
 export type TodoActionState = { error: string | null };
 
@@ -21,14 +21,17 @@ export async function addTodoAction(
   _previous: TodoActionState,
   formData: FormData,
 ): Promise<TodoActionState> {
-  const parsed = parseCreateTodoBody({ title: formData.get('title') });
+  const parsed = parseCreateTodoInput({
+    title: formData.get('title'),
+    dueDate: formData.get('dueDate'),
+  });
   if (!parsed.ok) {
-    return { error: parsed.fieldErrors.title };
+    return { error: parsed.fieldErrors.title || 'Check the task and its due date.' };
   }
 
   try {
     const ownerToken = await resolveOwnerToken();
-    await createTodo(ownerToken, parsed.value.title);
+    await createTodo(ownerToken, parsed.value.title, parsed.value.dueDate);
   } catch {
     return { error: 'Unable to save this task. Try again.' };
   }
@@ -44,6 +47,25 @@ export async function toggleTodoAction(formData: FormData): Promise<void> {
 
   const ownerToken = await resolveOwnerToken();
   await setTodoDone(ownerToken, id, next === 'true');
+  revalidatePath('/');
+}
+
+/**
+ * Set, change, or clear a task due date from its own row.
+ *
+ * An empty field clears the date, which is what keeps the date optional for the
+ * whole life of the task. A malformed date is ignored rather than stored.
+ */
+export async function setDueDateAction(formData: FormData): Promise<void> {
+  const id = formData.get('id');
+  const raw = formData.get('dueDate');
+  if (typeof id !== 'string') return;
+
+  const parsed = validateDueDate(raw);
+  if (!parsed.ok) return;
+
+  const ownerToken = await resolveOwnerToken();
+  await setTodoDueDate(ownerToken, id, parsed.value.dueDate);
   revalidatePath('/');
 }
 

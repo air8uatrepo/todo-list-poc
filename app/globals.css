@@ -100,3 +100,47 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .todo.done .toggle { background: var(--accent); border-color: transparent; color: #fff; }
 
 .remove { background: transparent; border-color: var(--line); color: var(--danger); }
+
+.todo .due {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .4rem;
+  color: var(--muted);
+  font-size: .85rem;
+  white-space: nowrap;
+}
+
+/* The mark is only revealed by the inline script once the browser confirms
+   the visitor local day has passed the due date. */
+.todo .overdue {
+  padding: .1rem .4rem;
+  border-radius: .35rem;
+  background: var(--danger);
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+
+.due-form { display: flex; gap: .35rem; align-items: center; }
+
+.due-input {
+  padding: .45rem .55rem;
+  border: 1px solid var(--line);
+  border-radius: .5rem;
+  background: var(--card);
+  color: inherit;
+  font: inherit;
+  font-size: .85rem;
+}
+
+.due-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.save-due {
+  padding: .45rem .7rem;
+  background: transparent;
+  border-color: var(--line);
+  color: inherit;
+  font-size: .85rem;
+}

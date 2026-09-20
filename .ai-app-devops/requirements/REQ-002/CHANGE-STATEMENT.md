@@ -25,4 +25,4 @@ sign-in, accounts, sharing a list between people, or collaboration. It does not
 carry a task between browsers or devices, because the owner token lives in one
 browser.
 
-**Status:** draft for business review - not yet confirmed
+**Confirmed by:** Business App Owner, 2026-09-20 (Auto-Gated)
