@@ -14,6 +14,8 @@
 | OUT-010 | state_mirror | Linear main issue A8-99 | 3 | `REQ-002:state:WAITING_ON_PREVIEW:r3` | Main issue state read back as `Prototype Reviewing`. No `Start *` state was written. |
 | OUT-011 | reply_request | Linear main issue A8-99 | 2 | `REQ-002:reply:r2` | Posted exactly one action comment beginning `@BUSINESS_APP_OWNER` and carrying `<!-- air8-business-direct:reply:todo-list-poc:REQ-002:2 -->`, presenting the verified preview URL and a copyable confirm/change/cancel reply block. Read back by `list_comments`; exactly one comment carries that marker and it contains no legacy hand-off token. |
 
+| OUT-012 | timeline_comment | Linear main issue A8-99, comment `f7f5d834-1269-4741-86e9-5cfc9122bd13` | 4 | `REQ-002:timeline:r4` | The same rolling milestone comment was updated in place with the `Publishing` milestone. Read back by `save_comment`; exactly one comment carries the marker, and it contains no recipient token. |
+| OUT-013 | state_mirror | Linear main issue A8-99 | 4 | `REQ-002:state:PUBLISHING:merge:r4` | Main issue state read back as `Code Merging`, the configured first `PUBLISHING` milestone value. No `Start *` state was written. |
 ## Kinds
 
 - `timeline_comment` - the single rolling milestone comment, updated in place
