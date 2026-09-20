@@ -1,9 +1,9 @@
 ---
 workflow_type: business_direct_app_v1
 project_mode: EXISTING
-status: PUBLISHING
-pending_action: ADVANCE_PUBLISHING_CURSOR
-execution_cursor: MERGE_MASTER
+status: COMPLETE
+pending_action: null
+execution_cursor: null
 application_id: todo-list-poc
 requirement_id: REQ-002
 run_id: DEMO-REQ-002-20260920-01
@@ -11,7 +11,7 @@ branch: req/REQ-002
 worktree_path: C:/aiproject/.worktrees/todo-list-poc/REQ-002
 base_sha: d3731f514aadd8273a70193e7122fac809a2b23f
 thread_id: local-codex-session-20260920
-state_revision: 8
+state_revision: 14
 repair_count: 1
 clarification_round: 0
 linear_issue_id: 166d073a-4a67-4168-a759-78f4b593d156
@@ -20,7 +20,7 @@ linear_timeline_comment_id: f7f5d834-1269-4741-86e9-5cfc9122bd13
 linear_spec_issue_id: 7de74b3b-53cc-4d3e-82c0-39ecb54d4e9a
 linear_spec_synced_revision: 2
 linear_spec_synced_at: 2026-09-20
-linear_mirrored_milestone: PUBLISHING
+linear_mirrored_milestone: COMPLETE
 application_lock: todo-list-poc/REQ-002
 ---
 

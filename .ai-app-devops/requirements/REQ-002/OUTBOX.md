@@ -16,6 +16,10 @@
 
 | OUT-012 | timeline_comment | Linear main issue A8-99, comment `f7f5d834-1269-4741-86e9-5cfc9122bd13` | 4 | `REQ-002:timeline:r4` | The same rolling milestone comment was updated in place with the `Publishing` milestone. Read back by `save_comment`; exactly one comment carries the marker, and it contains no recipient token. |
 | OUT-013 | state_mirror | Linear main issue A8-99 | 4 | `REQ-002:state:PUBLISHING:merge:r4` | Main issue state read back as `Code Merging`, the configured first `PUBLISHING` milestone value. No `Start *` state was written. |
+| OUT-014 | state_mirror | Linear main issue A8-99 | 5 | `REQ-002:state:PUBLISHING:test:r5` | Main issue state read back as `QA Testing`, the configured second `PUBLISHING` value, written from the production deployment VERIFICATION cursor onward. No `Start *` state was written. |
+| OUT-015 | timeline_comment | Linear main issue A8-99, comment `f7f5d834-1269-4741-86e9-5cfc9122bd13` | 5 | `REQ-002:timeline:r5` | The same rolling milestone comment was updated in place with the `Delivered` milestone and the production URL. Read back by `save_comment`; exactly one comment carries the marker, and it contains no recipient token. |
+| OUT-016 | state_mirror | Linear main issue A8-99 | 6 | `REQ-002:state:COMPLETE:r6` | Main issue state read back as `Done` (`statusType=completed`). No `Start *` state was written. |
+
 ## Kinds
 
 - `timeline_comment` - the single rolling milestone comment, updated in place
