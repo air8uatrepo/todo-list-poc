@@ -497,3 +497,106 @@ shows the actual content.
 **Type consistency:** `Todo.dueDate` is `string | null` everywhere;
 `setDueDate(ownerToken, id, dueDate)` and `setTodoDueDate` share that signature;
 `isOverdue(dueDate, isDone, today)` has one shape across Task 1 and Task 5.
+
+### Task 8: Re-apply the overdue rule after an in-page list update
+
+Observed defect on preview (`E2E-KP-REQ-002-001`, AC-003, EX-E-001): the row
+renders `<span hidden class="overdue" data-testid="todo-overdue">` and the
+stored value and readable date are both correct, but the mark stays hidden.
+After a full page reload the same row's mark is visible.
+
+Root cause: `buildOverdueScript()` is emitted once, after the list, and runs
+while the HTML is parsed. A server action (`addTodoAction` and friends) calls
+`revalidatePath('/')` and React re-renders the list in place, so every row
+created or changed after the first paint is inserted into the DOM without ever
+passing through the script. Only a fresh document load (which parses the script
+again) reveals those marks.
+
+Fix: keep the one-shot parse-time pass, and add a `MutationObserver` that re-runs
+the same pass after the list updates in place. That pass now sets `hidden` from
+the rule in both directions rather than only clearing it, because an in-page
+update that moves a date beyond today re-renders the same mark node with an
+unchanged `hidden` prop and would otherwise keep a stale mark. The observer is guarded with
+`typeof MutationObserver !== 'undefined'`, so the script still runs where the
+API is absent. The re-apply is idempotent: setting `hidden = false` on an
+already-visible mark records no further mutation, so the observer cannot loop.
+
+**Files:**
+- Modify: `src/lib/overdue-mark.ts`
+- Test: `tests/due-date.test.tsx` (append; existing assertions untouched)
+
+**Interfaces:**
+- Consumes: `revealOverdueMarks(root, today, dueDateAttribute, overdueTestId, isOverdueFn, localCalendarDateFn)`.
+- Produces: `buildOverdueScript(): string` with an unchanged signature; its
+  output now also re-applies after in-page updates. The module stays
+  import-free and every serialized body keeps taking its values as parameters.
+
+- [ ] **Step 1: Write the failing tests**
+
+Add cases that run the emitted script against a DOM stub which records a
+registered observer, then insert a new overdue row (the in-page update a server
+action produces) and invoke the recorded callback. Include the reverse case: a
+row already revealed whose date an in-page update moves beyond today must be
+hidden again, so the rule is authoritative rather than reveal-only.
+
+```ts
+it('re-applies the rule to a row inserted by a server-action re-render', () => {
+  const rows: StubRow[] = [];
+  runScriptWithObserver(rows);
+  const added = { due: localDay(-1), mark: { hidden: true } };
+  rows.push(added);
+  StubMutationObserver.instances[0].fire();
+  expect(added.mark.hidden).toBe(false);
+});
+
+it('hides a previously revealed mark when the date moves beyond today', () => {
+  const rows: StubRow[] = [];
+  runScriptWithObserver(rows);
+  const moved = { due: localDay(-1), mark: { hidden: true } };
+  rows.push(moved);
+  StubMutationObserver.instances[0].fire();
+  moved.due = localDay(3);
+  StubMutationObserver.instances[0].fire();
+  expect(moved.mark.hidden).toBe(true);
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npx vitest run tests/due-date.test.tsx`
+Expected: FAIL, the newly added row is never revealed because the pre-fix script
+registers nothing and the callback is never recorded.
+
+- [ ] **Step 3: Write minimal implementation**
+
+Make the loop body set `hidden` from the rule in both directions, and emit the
+one-shot call plus a guarded observer that repeats the same full call:
+
+```ts
+// inside revealOverdueMarks
+if (mark !== null) mark.hidden = !isOverdueFn(dueDate, false, todayText);
+
+// inside buildOverdueScript
+'revealOverdueMarks(document, new Date(), DUE_DATE_ATTRIBUTE, OVERDUE_TESTID, isOverdue, localCalendarDate);',
+'if(typeof MutationObserver!=="undefined"){new MutationObserver(function(){revealOverdueMarks(document, new Date(), DUE_DATE_ATTRIBUTE, OVERDUE_TESTID, isOverdue, localCalendarDate);}).observe(document.documentElement,{childList:true,subtree:true});}',
+```
+
+The observer repeats the full serialized call rather than naming a helper, so no
+new identifier is introduced and the TASK-007 free-identifier guard stays clean.
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npx vitest run tests/due-date.test.tsx`
+Expected: PASS, including the untouched TASK-007 guards.
+
+- [ ] **Step 5: Regression check on the whole suite and the build**
+
+Run: `npm test`, `npm run lint`, `npm run build`
+Expected: all green; REQ-001 tests unchanged.
+
+- [ ] **Step 6: Real-browser check of the production script**
+
+Extract the emitted `<script>` from the production build and run it in headless
+Chromium against a DOM that performs an in-place row insertion, confirming the
+new row is revealed by the minified script.
+Expected: the inserted row is revealed.

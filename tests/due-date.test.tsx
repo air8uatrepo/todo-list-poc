@@ -134,3 +134,125 @@ describe('the inline overdue script', () => {
     }
   });
 });
+
+type StubDocument = {
+  documentElement: unknown;
+  querySelectorAll: (selector: string) => unknown[];
+};
+
+/** A MutationObserver stub that records the callback the script registers. */
+class StubMutationObserver {
+  static instances: StubMutationObserver[] = [];
+
+  readonly callback: () => void;
+  observedTarget: unknown = null;
+  observedOptions: unknown = null;
+
+  constructor(callback: () => void) {
+    this.callback = callback;
+    StubMutationObserver.instances.push(this);
+  }
+
+  observe(target: unknown, options: unknown): void {
+    this.observedTarget = target;
+    this.observedOptions = options;
+  }
+
+  fire(): void {
+    this.callback();
+  }
+}
+
+function stubDocument(rows: StubRow[]): StubDocument {
+  return {
+    documentElement: { tagName: 'HTML' },
+    querySelectorAll: (selector: string) =>
+      selector === `[${DUE_DATE_ATTRIBUTE}]`
+        ? rows.map((row) => ({
+            getAttribute: (name: string) => (name === DUE_DATE_ATTRIBUTE ? row.due : null),
+            querySelector: () => row.mark,
+          }))
+        : [],
+  };
+}
+
+/** Run the emitted script with a MutationObserver stand-in in scope. */
+function runScriptWithObserver(rows: StubRow[]): StubDocument {
+  StubMutationObserver.instances = [];
+  const documentStub = stubDocument(rows);
+  const run = new Function('document', 'MutationObserver', buildOverdueScript()) as (
+    doc: unknown,
+    observer: unknown,
+  ) => void;
+  run(documentStub, StubMutationObserver);
+  return documentStub;
+}
+
+describe('the inline overdue script after an in-page list update', () => {
+  it('re-applies the rule to a row inserted by a server-action re-render', () => {
+    // A server action calls revalidatePath('/') and React replaces the list in
+    // place: the script has already run during the initial parse, so the new
+    // row's mark is never revealed. Observed on preview as
+    // E2E-KP-REQ-002-001 / AC-003 failing while the same row was correct after
+    // a reload. This test fails on the pre-fix script, which registers nothing.
+    const rows: StubRow[] = [];
+    runScriptWithObserver(rows);
+
+    expect(StubMutationObserver.instances).toHaveLength(1);
+
+    const added = { due: localDay(-1), mark: { hidden: true } };
+    rows.push(added);
+    StubMutationObserver.instances[0].fire();
+
+    expect(added.mark.hidden).toBe(false);
+  });
+
+  it('observes the document subtree for child-list changes', () => {
+    const documentStub = runScriptWithObserver([]);
+    const observer = StubMutationObserver.instances[0];
+
+    expect(observer.observedTarget).toBe(documentStub.documentElement);
+    expect(observer.observedOptions).toEqual({ childList: true, subtree: true });
+  });
+
+  it('leaves a newly inserted future-dated row hidden and an undated row alone', () => {
+    const rows: StubRow[] = [];
+    runScriptWithObserver(rows);
+
+    const future = { due: localDay(1), mark: { hidden: true } };
+    const undated = { due: '', mark: { hidden: true } };
+    rows.push(future, undated);
+    StubMutationObserver.instances[0].fire();
+
+    expect(future.mark.hidden).toBe(true);
+    expect(undated.mark.hidden).toBe(true);
+  });
+
+  it('does not reference MutationObserver without guarding for its absence', () => {
+    // The existing runScript harness passes no MutationObserver, so the script
+    // must still run where the API is missing instead of throwing.
+    const script = buildOverdueScript();
+    expect(script).toMatch(/typeof MutationObserver/);
+  });
+});
+
+describe('the rule stays authoritative when an in-page update changes a date', () => {
+  it('hides a previously revealed mark when the date moves beyond today', () => {
+    // An in-page update can leave the visitor with a mark the rule no longer
+    // agrees with. Observed sequence: an undated row is given a past date (the
+    // observer reveals the mark, and React reuses the same mark node because
+    // the JSX `hidden` prop never changes), then the date is moved into the
+    // future. The row must not keep showing a stale overdue mark.
+    const rows: StubRow[] = [];
+    runScriptWithObserver(rows);
+
+    const moved = { due: localDay(-1), mark: { hidden: true } };
+    rows.push(moved);
+    StubMutationObserver.instances[0].fire();
+    expect(moved.mark.hidden).toBe(false);
+
+    moved.due = localDay(3);
+    StubMutationObserver.instances[0].fire();
+    expect(moved.mark.hidden).toBe(true);
+  });
+});

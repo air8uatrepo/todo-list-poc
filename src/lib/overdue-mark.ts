@@ -8,6 +8,12 @@
  * script reveals the mark while the HTML is still being parsed, so there is no
  * hydration mismatch and no visible flash.
  *
+ * The rule must also re-apply after the list updates in place. A server action
+ * calls `revalidatePath('/')` and React re-renders the list without a document
+ * load, so a row created or changed after the first paint never passes through
+ * the parse-time pass and would keep a hidden mark until the next reload. A
+ * MutationObserver therefore re-runs the same pass on in-page updates.
+ *
  * THIS MODULE MUST NOT IMPORT ANYTHING.
  *
  * The rule below is serialized into the inline script with `String(fn)`, and a
@@ -77,13 +83,17 @@ function revealOverdueMarks(
   isOverdueFn: (dueDate: string, isDone: boolean, today: string) => boolean,
   localCalendarDateFn: (now: Date) => string,
 ): void {
+  const todayText = localCalendarDateFn(today);
   const rows = root.querySelectorAll(`[${dueDateAttribute}]`);
   for (const row of Array.from(rows)) {
     const dueDate = row.getAttribute(dueDateAttribute);
     if (dueDate === null) continue;
-    if (!isOverdueFn(dueDate, false, localCalendarDateFn(today))) continue;
     const mark = row.querySelector(`[data-testid="${overdueTestId}"]`) as { hidden: boolean } | null;
-    if (mark !== null) mark.hidden = false;
+    // The rule is authoritative in both directions after an in-page update.
+    // Revealing only would leave a stale mark on a row whose date an in-page
+    // update moved beyond today: React re-renders the same mark node with an
+    // unchanged `hidden` prop, so it never resets the value this script set.
+    if (mark !== null) mark.hidden = !isOverdueFn(dueDate, false, todayText);
   }
 }
 
@@ -105,6 +115,14 @@ export function buildOverdueScript(): string {
     `var isOverdue=${String(isOverdue)};`,
     `var revealOverdueMarks=${String(revealOverdueMarks)};`,
     'revealOverdueMarks(document, new Date(), DUE_DATE_ATTRIBUTE, OVERDUE_TESTID, isOverdue, localCalendarDate);',
+    // Re-apply after an in-page list update, which a server action produces by
+    // calling revalidatePath('/'). Written out in full rather than naming a
+    // helper, so no new identifier is introduced and every serialized body
+    // keeps taking its values as parameters. Guarded, so the script still runs
+    // where the API is absent, and idempotent: revealing an already-visible
+    // mark records no further mutation, so the observer cannot re-trigger
+    // itself.
+    'if(typeof MutationObserver!=="undefined"){new MutationObserver(function(){revealOverdueMarks(document, new Date(), DUE_DATE_ATTRIBUTE, OVERDUE_TESTID, isOverdue, localCalendarDate);}).observe(document.documentElement,{childList:true,subtree:true});}',
     '})();',
   ].join('');
 }
