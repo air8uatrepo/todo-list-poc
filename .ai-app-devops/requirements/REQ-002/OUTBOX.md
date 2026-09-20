@@ -10,6 +10,9 @@
 | OUT-006 | child_state_mirror | Linear child issue A8-100 | 2 | `REQ-002:spec-child-state:r2` | Child moved alone to `Requirement Done` after the business confirmation. Read back by `get_issue`; `statusType=completed`. The main issue A8-99 was not moved by this write, and the listener skipped it (`decision=skipped status Requirement Done`). |
 | OUT-007 | timeline_comment | Linear main issue A8-99, comment `f7f5d834-1269-4741-86e9-5cfc9122bd13` | 2 | `REQ-002:timeline:r2` | The same rolling milestone comment was updated in place with the `Creating preview` milestone. Read back by `save_comment`; exactly one comment carries the marker, and it contains no recipient token. |
 | OUT-008 | state_mirror | Linear main issue A8-99 | 2 | `REQ-002:state:BUILDING_PREVIEW:r2` | Main issue state read back as `Developing`. No `Start *` state was written. |
+| OUT-009 | timeline_comment | Linear main issue A8-99, comment `f7f5d834-1269-4741-86e9-5cfc9122bd13` | 3 | `REQ-002:timeline:r3` | The same rolling milestone comment was updated in place with the `Preview ready` milestone, including the verified preview URL. Read back by `save_comment`; exactly one comment carries the marker, and it contains no recipient token. |
+| OUT-010 | state_mirror | Linear main issue A8-99 | 3 | `REQ-002:state:WAITING_ON_PREVIEW:r3` | Main issue state read back as `Prototype Reviewing`. No `Start *` state was written. |
+| OUT-011 | reply_request | Linear main issue A8-99 | 2 | `REQ-002:reply:r2` | Posted exactly one action comment beginning `@BUSINESS_APP_OWNER` and carrying `<!-- air8-business-direct:reply:todo-list-poc:REQ-002:2 -->`, presenting the verified preview URL and a copyable confirm/change/cancel reply block. Read back by `list_comments`; exactly one comment carries that marker and it contains no legacy hand-off token. |
 
 ## Kinds
 
