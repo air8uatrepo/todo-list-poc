@@ -1,4 +1,4 @@
-const DEMO_PREFIX = 'DEMO-REQ-001-20260919-01';
+import { APPROVED_PREFIXES } from './synthetic-prefix';
 
 type ApprovedTarget = 'local' | 'preview' | 'production';
 
@@ -14,6 +14,22 @@ function validateApprovedTarget(value: string): asserts value is ApprovedTarget 
   if (value !== 'local' && value !== 'preview' && value !== 'production') {
     throw new Error('BUSINESS_DIRECT_E2E_TARGET must be one of local, preview, or production.');
   }
+}
+
+/**
+ * The target approval must be one of the approved requirement prefixes.
+ *
+ * The check reads the requirement prefix the run is actually asserting on, so a
+ * REQ-002 run passes its REQ-002 prefix and a REQ-001 prefix is still accepted.
+ * The list is closed, so an unapproved or misspelled prefix fails closed.
+ */
+function validateApprovedPrefix(value: string): string {
+  if (!APPROVED_PREFIXES.includes(value)) {
+    throw new Error(
+      `BUSINESS_DIRECT_E2E_TARGET_APPROVAL must be one of: ${APPROVED_PREFIXES.join(', ')}.`,
+    );
+  }
+  return value;
 }
 
 function validateBaseUrl(target: ApprovedTarget, rawUrl: string): void {
@@ -37,16 +53,15 @@ export default function globalSetup(): void {
   const target = requiredEnvironment('BUSINESS_DIRECT_E2E_TARGET');
   validateApprovedTarget(target);
 
-  if (requiredEnvironment('BUSINESS_DIRECT_E2E_TARGET_APPROVAL') !== DEMO_PREFIX) {
-    throw new Error('BUSINESS_DIRECT_E2E_TARGET_APPROVAL does not match the approved requirement run.');
-  }
+  const approvedPrefix = validateApprovedPrefix(requiredEnvironment('BUSINESS_DIRECT_E2E_TARGET_APPROVAL'));
 
   validateBaseUrl(target, requiredEnvironment('BUSINESS_DIRECT_E2E_BASE_URL'));
 
   // The owner identity is a synthetic fixture, so it cannot be a real account.
+  // It must also carry the same requirement prefix the run is approved for.
   for (const name of ['BUSINESS_DIRECT_E2E_OWNER_EMAIL', 'BUSINESS_DIRECT_E2E_OWNER_PASSWORD'] as const) {
-    if (!requiredEnvironment(name).startsWith(DEMO_PREFIX)) {
-      throw new Error(`${name} must begin with the approved synthetic data prefix.`);
+    if (!requiredEnvironment(name).startsWith(approvedPrefix)) {
+      throw new Error(`${name} must begin with the approved synthetic data prefix ${approvedPrefix}.`);
     }
   }
 }
